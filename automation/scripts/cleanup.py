@@ -19,8 +19,10 @@ def main() -> int:
     p.add_argument("--lifetime-minutes", type=int, default=None)
     args = p.parse_args()
 
-    sched = json.loads(SCHEDULE_PATH.read_text())
-    lifetime = args.lifetime_minutes or int(sched.get("delete_lifetime_minutes") or 15)
+    lifetime = args.lifetime_minutes or 15
+    if SCHEDULE_PATH.is_file():
+        sched = json.loads(SCHEDULE_PATH.read_text())
+        lifetime = args.lifetime_minutes or int(sched.get("delete_lifetime_minutes") or 15)
 
     doomed = sites_to_delete(lifetime)
     if not doomed:

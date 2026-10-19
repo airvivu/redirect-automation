@@ -14,6 +14,9 @@ from lib_paths import SCHEDULE_PATH
 
 
 def main() -> int:
+    if not SCHEDULE_PATH.is_file():
+        print("schedule.json missing; skip.")
+        return 0
     sched = json.loads(SCHEDULE_PATH.read_text())
     scripts = Path(__file__).resolve().parent
 

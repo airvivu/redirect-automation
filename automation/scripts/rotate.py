@@ -23,6 +23,8 @@ from render_api import (
 
 
 def load_schedule() -> dict:
+    if not SCHEDULE_PATH.is_file():
+        return {}
     return json.loads(SCHEDULE_PATH.read_text())
 
 

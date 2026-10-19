@@ -1,7 +1,8 @@
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-CONFIG_DIR = ROOT / "config"
-SCHEDULE_PATH = ROOT / "schedule.json"
-REGISTRY_PATH = ROOT / "sites-registry.json"
+# automation/scripts/this_file.py -> automation/
+AUTOMATION_ROOT = Path(__file__).resolve().parents[1]
+CONFIG_DIR = AUTOMATION_ROOT / "config"
+SCHEDULE_PATH = AUTOMATION_ROOT / "schedule.json"
+REGISTRY_PATH = AUTOMATION_ROOT / "sites-registry.json"
 SERVERS_PATH = CONFIG_DIR / "servers.json"
