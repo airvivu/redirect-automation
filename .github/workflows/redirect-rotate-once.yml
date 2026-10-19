@@ -13,14 +13,14 @@ on:
         default: "main"
         type: string
       build_command:
-        description: "Render build command"
+        description: "Render build command (use echo for plain HTML)"
         required: false
-        default: "npm ci && npm run build"
+        default: "echo Static HTML — no build step"
         type: string
       publish_path:
-        description: "Publish directory"
+        description: "Publish directory (. = repo root, frontend = frontend/)"
         required: false
-        default: "dist"
+        default: "."
         type: string
 
 permissions:

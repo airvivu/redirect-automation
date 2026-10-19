@@ -13,11 +13,11 @@ on:
         type: string
       build_command:
         required: false
-        default: "npm ci && npm run build"
+        default: "echo Static HTML — no build step"
         type: string
       publish_path:
         required: false
-        default: "dist"
+        default: "."
         type: string
       create_interval_minutes:
         description: "Create every N minutes (10–60, step 5)"
