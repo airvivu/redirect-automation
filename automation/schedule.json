@@ -1,0 +1,11 @@
+{
+  "enabled": false,
+  "github_repo": "",
+  "branch": "main",
+  "build_command": "npm ci && npm run build",
+  "publish_path": "dist",
+  "create_interval_minutes": 10,
+  "delete_lifetime_minutes": 15,
+  "last_create_at": null,
+  "next_create_at": null
+}

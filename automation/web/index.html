@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Redirect rotation control</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #111; background: #f6f7f9; }
+    body { max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.35rem; }
+    label { display: block; margin-top: 0.75rem; font-size: 0.85rem; font-weight: 600; }
+    input, select, button { width: 100%; box-sizing: border-box; margin-top: 0.25rem; padding: 0.5rem; }
+    button { margin-top: 1rem; cursor: pointer; background: #111; color: #fff; border: none; border-radius: 6px; }
+    button.secondary { background: #444; }
+    .card { background: #fff; border-radius: 8px; padding: 1rem; margin: 1rem 0; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .hint { font-size: 0.8rem; color: #555; margin-top: 0.5rem; }
+    .err { color: #b00020; font-size: 0.85rem; }
+    .ok { color: #0a7; font-size: 0.85rem; }
+    #log { white-space: pre-wrap; font-size: 0.8rem; background: #eee; padding: 0.75rem; border-radius: 6px; min-height: 3rem; }
+  </style>
+</head>
+<body>
+  <h1>Render → Redis redirect control</h1>
+  <p class="hint">Triggers GitHub Actions in your repo. Needs a fine-grained PAT with <strong>Contents</strong> + <strong>Actions</strong> (read/write). Stored only in this browser (localStorage).</p>
+
+  <div class="card">
+    <label>GitHub repo (owner/name)</label>
+    <input id="ghRepo" placeholder="myorg/my-static-landing" />
+
+    <label>GitHub repo for automation (owner/name)</label>
+    <input id="automationRepo" placeholder="myorg/oct-front" />
+
+    <label>GitHub PAT</label>
+    <input id="pat" type="password" placeholder="github_pat_..." />
+    <button type="button" class="secondary" id="savePat">Save token locally</button>
+  </div>
+
+  <div class="card">
+    <label>Branch</label>
+    <input id="branch" value="main" />
+    <label>Build command</label>
+    <input id="build" value="npm ci && npm run build" />
+    <label>Publish path</label>
+    <input id="publish" value="dist" />
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 .5rem;font-size:1rem">One-time rotate</h2>
+    <button type="button" id="runOnce">Create Render site + update all Redis</button>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 .5rem;font-size:1rem">Auto schedule</h2>
+    <label>Create every (minutes)</label>
+    <select id="createEvery"></select>
+    <label>Delete Render sites after (minutes, not active)</label>
+    <select id="deleteAfter"></select>
+    <label>Auto enabled</label>
+    <select id="enabled"><option value="false">Off</option><option value="true">On</option></select>
+    <button type="button" id="saveSchedule">Save schedule (commits schedule.json)</button>
+    <p class="hint">Scheduler workflow runs every 5 minutes and creates when due.</p>
+  </div>
+
+  <p id="status"></p>
+  <div id="log"></div>
+
+  <script>
+    const mins = [10,15,20,25,30,35,40,45,50,55,60];
+    const createEvery = document.getElementById('createEvery');
+    const deleteAfter = document.getElementById('deleteAfter');
+    mins.forEach(m => {
+      createEvery.append(new Option(m + ' min', String(m)));
+      deleteAfter.append(new Option(m + ' min', String(m)));
+    });
+    deleteAfter.value = '15';
+
+    const automationRepoInput = document.getElementById('automationRepo');
+    const patInput = document.getElementById('pat');
+    if (localStorage.getItem('redirect_pat')) patInput.placeholder = '(saved)';
+    if (localStorage.getItem('automation_repo')) automationRepoInput.value = localStorage.getItem('automation_repo');
+
+    document.getElementById('savePat').onclick = () => {
+      localStorage.setItem('redirect_pat', patInput.value.trim());
+      localStorage.setItem('automation_repo', automationRepoInput.value.trim());
+      patInput.value = '';
+      patInput.placeholder = '(saved)';
+      setStatus('Token saved in this browser only.', 'ok');
+    };
+
+    function token() {
+      const t = patInput.value.trim() || localStorage.getItem('redirect_pat') || '';
+      if (!t) throw new Error('Add a GitHub PAT first.');
+      return t;
+    }
+
+    function setStatus(msg, cls) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = cls || '';
+    }
+
+    async function dispatch(workflowFile, inputs) {
+      const repo = automationRepoInput.value.trim();
+      if (!repo.includes('/')) throw new Error('Set automation repo owner/name.');
+      const [owner, name] = repo.split('/');
+      const ref = 'main';
+      const res = await fetch(`https://api.github.com/repos/${owner}/${name}/actions/workflows/${workflowFile}/dispatches`, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + token(),
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+        body: JSON.stringify({ ref, inputs }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    }
+
+    document.getElementById('runOnce').onclick = async () => {
+      try {
+        setStatus('Starting workflow…', '');
+        await dispatch('redirect-rotate-once.yml', {
+          github_repo: document.getElementById('ghRepo').value.trim(),
+          branch: document.getElementById('branch').value.trim(),
+          build_command: document.getElementById('build').value.trim(),
+          publish_path: document.getElementById('publish').value.trim(),
+        });
+        setStatus('Workflow started. Check Actions tab.', 'ok');
+      } catch (e) {
+        setStatus(e.message, 'err');
+      }
+    };
+
+    document.getElementById('saveSchedule').onclick = async () => {
+      try {
+        setStatus('Saving schedule…', '');
+        await dispatch('redirect-save-schedule.yml', {
+          github_repo: document.getElementById('ghRepo').value.trim(),
+          branch: document.getElementById('branch').value.trim(),
+          build_command: document.getElementById('build').value.trim(),
+          publish_path: document.getElementById('publish').value.trim(),
+          create_interval_minutes: createEvery.value,
+          delete_lifetime_minutes: deleteAfter.value,
+          enabled: document.getElementById('enabled').value,
+        });
+        setStatus('Schedule saved. Enable auto + scheduler cron will rotate.', 'ok');
+      } catch (e) {
+        setStatus(e.message, 'err');
+      }
+    };
+  </script>
+</body>
+</html>
