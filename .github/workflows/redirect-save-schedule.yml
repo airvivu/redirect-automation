@@ -83,10 +83,10 @@ jobs:
         run: |
           python <<'PY'
           import json, os
-          from datetime import datetime, timezone
           path = "automation/schedule.json"
+          enabled = os.environ["ENABLED"] == "true"
           data = {
-            "enabled": os.environ["ENABLED"] == "true",
+            "enabled": enabled,
             "github_repo": os.environ["REPO"],
             "branch": os.environ["BRANCH"],
             "build_command": os.environ["BUILD"],
@@ -94,27 +94,45 @@ jobs:
             "create_interval_minutes": int(os.environ["CREATE_EVERY"]),
             "delete_lifetime_minutes": int(os.environ["DELETE_AFTER"]),
             "last_create_at": None,
-            "next_create_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat() if os.environ["ENABLED"] == "true" else None,
+            "next_create_at": None,
           }
-          old = {}
-          try:
-            with open(path) as f:
-              old = json.load(f)
-          except FileNotFoundError:
-            pass
-          if old.get("last_create_at"):
-            data["last_create_at"] = old["last_create_at"]
-          if os.environ["ENABLED"] == "true" and old.get("next_create_at") and old.get("github_repo") == data["github_repo"]:
-            data["next_create_at"] = old["next_create_at"]
           with open(path, "w") as f:
             json.dump(data, f, indent=2)
             f.write("\n")
           PY
 
-      - name: Commit schedule
+      - uses: webfactory/ssh-agent@v0.9.0
+        if: inputs.enabled == 'true'
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Install Python deps
+        if: inputs.enabled == 'true'
+        run: pip install -r automation/scripts/requirements.txt
+
+      - name: Cleanup old Render sites
+        if: inputs.enabled == 'true'
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: python automation/scripts/cleanup.py
+
+      - name: Rotate immediately (auto on)
+        if: inputs.enabled == 'true'
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
+        run: |
+          python automation/scripts/rotate.py \
+            --repo "${{ inputs.github_repo }}" \
+            --branch "${{ inputs.branch }}" \
+            --build-command "${{ inputs.build_command }}" \
+            --publish-path "${{ inputs.publish_path }}"
+          python automation/scripts/finish_schedule_after_rotate.py
+
+      - name: Commit schedule and registry
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add automation/schedule.json
-          git commit -m "chore(automation): update redirect schedule"
+          git add automation/schedule.json automation/sites-registry.json
+          git diff --staged --quiet || git commit -m "chore(automation): save schedule and registry"
           git push
