@@ -1,11 +1,11 @@
 {
-  "enabled": false,
-  "github_repo": "",
+  "enabled": true,
+  "github_repo": "airvivu/redirect-automation",
   "branch": "main",
-  "build_command": "npm ci && npm run build",
-  "publish_path": "dist",
+  "build_command": "echo Static HTML \u2014 no build step",
+  "publish_path": ".",
   "create_interval_minutes": 10,
   "delete_lifetime_minutes": 15,
   "last_create_at": null,
-  "next_create_at": null
+  "next_create_at": "2026-10-19T10:49:50+00:00"
 }
