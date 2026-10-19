@@ -1,0 +1,59 @@
+name: Redirect — rotate once
+
+on:
+  workflow_dispatch:
+    inputs:
+      github_repo:
+        description: "GitHub repo (owner/name)"
+        required: true
+        type: string
+      branch:
+        description: "Branch to deploy"
+        required: false
+        default: "main"
+        type: string
+      build_command:
+        description: "Render build command"
+        required: false
+        default: "npm ci && npm run build"
+        type: string
+      publish_path:
+        description: "Publish directory"
+        required: false
+        default: "dist"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Install Python deps
+        run: pip install -r automation/scripts/requirements.txt
+
+      - name: Create Render site + update Redis
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_OWNER_ID: ${{ secrets.RENDER_OWNER_ID }}
+        run: |
+          python automation/scripts/rotate.py \
+            --repo "${{ inputs.github_repo }}" \
+            --branch "${{ inputs.branch }}" \
+            --build-command "${{ inputs.build_command }}" \
+            --publish-path "${{ inputs.publish_path }}"
+
+      - name: Commit registry
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add automation/sites-registry.json
+          git diff --staged --quiet || git commit -m "chore(automation): redirect registry after rotate"
+          git push

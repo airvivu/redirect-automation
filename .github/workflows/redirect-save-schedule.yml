@@ -1,0 +1,120 @@
+name: Redirect — save schedule
+
+on:
+  workflow_dispatch:
+    inputs:
+      github_repo:
+        description: "GitHub repo (owner/name)"
+        required: true
+        type: string
+      branch:
+        required: false
+        default: "main"
+        type: string
+      build_command:
+        required: false
+        default: "npm ci && npm run build"
+        type: string
+      publish_path:
+        required: false
+        default: "dist"
+        type: string
+      create_interval_minutes:
+        description: "Create every N minutes (10–60, step 5)"
+        required: true
+        default: "10"
+        type: choice
+        options:
+          - "10"
+          - "15"
+          - "20"
+          - "25"
+          - "30"
+          - "35"
+          - "40"
+          - "45"
+          - "50"
+          - "55"
+          - "60"
+      delete_lifetime_minutes:
+        description: "Delete Render sites older than N minutes (not active)"
+        required: true
+        default: "15"
+        type: choice
+        options:
+          - "10"
+          - "15"
+          - "20"
+          - "25"
+          - "30"
+          - "35"
+          - "40"
+          - "45"
+          - "50"
+          - "55"
+          - "60"
+      enabled:
+        description: "Enable automatic rotation"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  contents: write
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write schedule.json
+        env:
+          ENABLED: ${{ inputs.enabled }}
+          REPO: ${{ inputs.github_repo }}
+          BRANCH: ${{ inputs.branch }}
+          BUILD: ${{ inputs.build_command }}
+          PUBLISH: ${{ inputs.publish_path }}
+          CREATE_EVERY: ${{ inputs.create_interval_minutes }}
+          DELETE_AFTER: ${{ inputs.delete_lifetime_minutes }}
+        run: |
+          python <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          path = "automation/schedule.json"
+          data = {
+            "enabled": os.environ["ENABLED"] == "true",
+            "github_repo": os.environ["REPO"],
+            "branch": os.environ["BRANCH"],
+            "build_command": os.environ["BUILD"],
+            "publish_path": os.environ["PUBLISH"],
+            "create_interval_minutes": int(os.environ["CREATE_EVERY"]),
+            "delete_lifetime_minutes": int(os.environ["DELETE_AFTER"]),
+            "last_create_at": None,
+            "next_create_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat() if os.environ["ENABLED"] == "true" else None,
+          }
+          old = {}
+          try:
+            with open(path) as f:
+              old = json.load(f)
+          except FileNotFoundError:
+            pass
+          if old.get("last_create_at"):
+            data["last_create_at"] = old["last_create_at"]
+          if os.environ["ENABLED"] == "true" and old.get("next_create_at") and old.get("github_repo") == data["github_repo"]:
+            data["next_create_at"] = old["next_create_at"]
+          with open(path, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+          PY
+
+      - name: Commit schedule
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add automation/schedule.json
+          git commit -m "chore(automation): update redirect schedule"
+          git push
