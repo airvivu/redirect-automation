@@ -1,12 +1,16 @@
 """Render API helpers for ephemeral static sites."""
 from __future__ import annotations
 
+import json
 import os
+import random
 import secrets
 import time
 from typing import Any
 
 import requests
+
+from lib_paths import CONFIG_DIR
 
 API = "https://api.render.com/v1"
 
@@ -18,8 +22,19 @@ def _headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {key}", "Accept": "application/json"}
 
 
-def random_service_name(prefix: str = "rs-") -> str:
-    return f"{prefix}{secrets.token_hex(8)}"
+def load_name_words() -> list[str]:
+    path = CONFIG_DIR / "render-name-words.json"
+    data = json.loads(path.read_text())
+    words = data.get("words") or []
+    if not words:
+        raise RuntimeError(f"No words in {path}")
+    return [str(w).strip().lower() for w in words if str(w).strip()]
+
+
+def random_service_name() -> str:
+    """e.g. fire-a1b2c3d4e5f67890 (word from list + same 16-char hex as before)."""
+    word = random.choice(load_name_words())
+    return f"{word}-{secrets.token_hex(8)}"
 
 
 def create_static_site(

@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from lib_paths import SCHEDULE_PATH, SERVERS_PATH
+from lib_paths import SCHEDULE_PATH
 from redis_update import set_redirect_url
 from registry import add_site
 from render_api import (
@@ -23,14 +23,7 @@ from render_api import (
 
 
 def load_schedule() -> dict:
-    if not SCHEDULE_PATH.is_file():
-        return {}
     return json.loads(SCHEDULE_PATH.read_text())
-
-
-def load_render_prefix() -> str:
-    cfg = json.loads(SERVERS_PATH.read_text())
-    return cfg.get("render", {}).get("name_prefix", "rs-")
 
 
 def main() -> int:
@@ -50,8 +43,7 @@ def main() -> int:
     branch = args.branch or sched.get("branch") or "main"
     build = args.build_command or sched.get("build_command") or "npm ci && npm run build"
     publish = args.publish_path or sched.get("publish_path") or "dist"
-    prefix = load_render_prefix()
-    name = random_service_name(prefix)
+    name = random_service_name()
 
     print(f"Creating Render static site: {name} from {repo}")
     created = create_static_site(
