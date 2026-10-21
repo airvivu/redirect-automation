@@ -3,12 +3,6 @@
   "active_service_id": "srv-dbc3eb3rjlhs73amjtn0",
   "sites": [
     {
-      "service_id": "srv-dbc2ug3ncjis7385rpkg",
-      "name": "rs-949cb5eb25d9a770",
-      "url": "https://rs-949cb5eb25d9a770.onrender.com",
-      "created_at": "2026-10-21T03:19:34+00:00"
-    },
-    {
       "service_id": "srv-dbc3eb3rjlhs73amjtn0",
       "name": "rs-9ef676e68dd443cf",
       "url": "https://rs-9ef676e68dd443cf.onrender.com",
