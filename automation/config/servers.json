@@ -20,7 +20,7 @@
     }
   ],
   "render": {
-    "name_prefix": "rs-",
-    "region": "oregon"
+    "region": "oregon",
+    "name_style": "random-word-plus-hex (see config/render-name-words.json)"
   }
 }
