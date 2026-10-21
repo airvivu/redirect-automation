@@ -50,5 +50,27 @@
     "onyx",
     "amber",
     "copper"
+  ],
+  "suffixes": [
+    "site",
+    "web",
+    "landing",
+    "page",
+    "app",
+    "hub",
+    "zone",
+    "link",
+    "home",
+    "live",
+    "host",
+    "view",
+    "port",
+    "go",
+    "net",
+    "spot",
+    "base",
+    "deck",
+    "lane",
+    "path"
   ]
 }
