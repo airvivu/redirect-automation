@@ -3,12 +3,6 @@
   "active_service_id": "srv-dbc5skpsrm7s73foqorg",
   "sites": [
     {
-      "service_id": "srv-dbc4n361egvs739gifg0",
-      "name": "ice-a9b9b0cf189f5ece",
-      "url": "https://ice-a9b9b0cf189f5ece.onrender.com",
-      "created_at": "2026-10-21T05:20:20+00:00"
-    },
-    {
       "service_id": "srv-dbc5ephsrm7s73eru4bg",
       "name": "luck-f496056c76d3c36d",
       "url": "https://luck-f496056c76d3c36d.onrender.com",
