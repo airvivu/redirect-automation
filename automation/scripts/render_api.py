@@ -5,8 +5,11 @@ import json
 import os
 import random
 import secrets
+import string
 import time
 from typing import Any
+
+_NAME_ALPHABET = string.ascii_lowercase + string.digits
 
 import requests
 
@@ -22,19 +25,33 @@ def _headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {key}", "Accept": "application/json"}
 
 
-def load_name_words() -> list[str]:
+def _load_name_config() -> dict[str, list[str]]:
     path = CONFIG_DIR / "render-name-words.json"
     data = json.loads(path.read_text())
-    words = data.get("words") or []
+
+    def clean(items: list) -> list[str]:
+        return [str(w).strip().lower() for w in items if str(w).strip()]
+
+    words = clean(data.get("words") or [])
+    suffixes = clean(data.get("suffixes") or [])
     if not words:
         raise RuntimeError(f"No words in {path}")
-    return [str(w).strip().lower() for w in words if str(w).strip()]
+    if not suffixes:
+        raise RuntimeError(f"No suffixes in {path}")
+    return {"words": words, "suffixes": suffixes}
+
+
+def _random_alnum(length: int) -> str:
+    return "".join(secrets.choice(_NAME_ALPHABET) for _ in range(length))
 
 
 def random_service_name() -> str:
-    """e.g. fire-a1b2c3d4e5f67890 (word from list + same 16-char hex as before)."""
-    word = random.choice(load_name_words())
-    return f"{word}-{secrets.token_hex(8)}"
+    """e.g. lightwolfweb6t4jdu — two words + suffix + 6 alnum."""
+    cfg = _load_name_config()
+    w1, w2 = random.choice(cfg["words"]), random.choice(cfg["words"])
+    suffix = random.choice(cfg["suffixes"])
+    tail = _random_alnum(6)
+    return f"{w1}{w2}{suffix}{tail}"
 
 
 def create_static_site(
