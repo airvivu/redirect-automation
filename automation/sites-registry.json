@@ -1,6 +1,6 @@
 {
-  "active_url": "https://skypixeldeckstka6q.onrender.com",
-  "active_service_id": "srv-dbdcr73rjlhs73cr5uvg",
+  "active_url": "https://blazelightbasepiy4xi.onrender.com",
+  "active_service_id": "srv-dbddist9fdbs73aoq4tg",
   "sites": [
     {
       "service_id": "srv-dbdc383rjlhs73cooq9g",
@@ -25,6 +25,12 @@
       "name": "skypixeldeckstka6q",
       "url": "https://skypixeldeckstka6q.onrender.com",
       "created_at": "2026-10-23T02:59:45+00:00"
+    },
+    {
+      "service_id": "srv-dbddist9fdbs73aoq4tg",
+      "name": "blazelightbasepiy4xi",
+      "url": "https://blazelightbasepiy4xi.onrender.com",
+      "created_at": "2026-10-23T03:50:16+00:00"
     }
   ]
 }
